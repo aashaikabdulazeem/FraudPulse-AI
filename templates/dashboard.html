@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>FraudPulse AI</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #0f172a;
+            color: white;
+        }
+
+        .header {
+            padding: 25px;
+            background: #111827;
+            border-bottom: 1px solid #334155;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #38bdf8;
+        }
+
+        .header p {
+            color: #94a3b8;
+        }
+
+        .container {
+            padding: 25px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #1e293b;
+            padding: 25px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        .card h3 {
+            margin-top: 0;
+            color: #94a3b8;
+        }
+
+        .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #38bdf8;
+        }
+
+        .section {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 12px;
+            border: 1px solid #334155;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #334155;
+        }
+
+        th {
+            color: #38bdf8;
+        }
+
+        .fraud {
+            color: #f87171;
+            font-weight: bold;
+        }
+
+        .safe {
+            color: #4ade80;
+            font-weight: bold;
+        }
+
+        @media (max-width: 800px) {
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>FraudPulse AI</h1>
+        <p>Real-Time Payment Fraud Spike Detector</p>
+    </div>
+
+    <div class="container">
+
+        <div class="cards">
+
+            <div class="card">
+                <h3>Total Transactions</h3>
+                <div class="number" id="total">Loading...</div>
+            </div>
+
+            <div class="card">
+                <h3>Suspicious Transactions</h3>
+                <div class="number" id="suspicious">Loading...</div>
+            </div>
+
+            <div class="card">
+                <h3>Fraud Rate</h3>
+                <div class="number" id="rate">Loading...</div>
+            </div>
+<div class="card">
+    <h3>Risk Level</h3>
+    <div class="number" id="risk">Loading...</div>
+</div>
+        </div>
+<div id="fraud-alert" style="
+    display: none;
+    background: #b65050;
+    border: 1px solid #692199;
+    color: #6bfffa;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    font-weight: bold;
+">
+    🚨 FRAUD SPIKE ALERT: High risk detected!
+</div>
+        <div class="section">
+<h2>Fraud Risk Monitor</h2>
+<canvas id="fraudChart" height="180"></canvas>
+</div> 
+
+<div class="section">
+            <h2>Recent Transactions</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Amount</th>
+                        <th>Failed</th>
+                        <th>New Device</th>
+                        <th>International</th>
+                        <th>Rapid Frequency</th>
+                        <th>Prediction</th>
+                    </tr>
+                </thead>
+
+                <tbody id="transactions">
+                    <tr>
+                        <td colspan="7">Loading...</td>
+                    </tr>
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        async function loadStats() {
+
+            try {
+
+                const response = await fetch("/api/stats");
+                const data = await response.json();
+
+                document.getElementById("total").textContent =
+    data.total_transactions;
+
+document.getElementById("suspicious").textContent =
+    data.suspicious_transactions;
+
+document.getElementById("rate").textContent =
+    data.suspicious_percentage + "%";
+
+const risk = document.getElementById("risk");
+
+risk.textContent = data.risk_level;
+
+if (data.risk_level === "HIGH") {
+    risk.style.color = "#ff4d4d";
+} else if (data.risk_level === "MEDIUM") {
+    risk.style.color = "#ffd43b";
+} else {
+    risk.style.color = "#4ade80";
+}
+const alert = document.getElementById("fraud-alert");
+
+if (data.risk_level === "HIGH") {
+    alert.style.display = "block";
+} else {
+    alert.style.display = "none";
+}
+            } catch (error) {
+
+                console.error("Stats error:", error);
+
+            }
+        }
+
+
+        async function loadRecent() {
+
+            try {
+
+                const response = await fetch("/api/recent");
+                const data = await response.json();
+
+                const table = document.getElementById("transactions");
+
+                table.innerHTML = "";
+
+                data.forEach(transaction => {
+
+                    const row = document.createElement("tr");
+
+                    const prediction =
+                        transaction.prediction == 1;
+
+                    row.innerHTML = `
+                        <td>${transaction.transaction_id}</td>
+                        <td>₹${Number(transaction.amount).toFixed(2)}</td>
+                        <td>${transaction.failed}</td>
+                        <td>${transaction.new_device}</td>
+                        <td>${transaction.international}</td>
+                        <td>${transaction.rapid_frequency}</td>
+                        <td class="${prediction ? "fraud" : "safe"}">
+                            ${prediction ? "⚠ FRAUD" : "✓ SAFE"}
+                        </td>
+                    `;
+
+                    table.appendChild(row);
+
+                });
+
+            } catch (error) {
+
+                console.error("Recent transactions error:", error);
+
+            }
+        }
+
+
+        loadStats();
+        loadRecent();
+
+        setInterval(loadStats, 5000);
+        setInterval(loadRecent, 5000);
+async function loadFraudChart() {
+    try {
+        const response = await fetch("/api/stats");
+        const data = await response.json();
+
+        const canvas = document.getElementById("fraudChart");
+        const ctx = canvas.getContext("2d");
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        const value = data.suspicious_percentage;
+
+        ctx.fillStyle = "#ff4d4d";
+        ctx.fillRect(50, 80, value * 5, 20);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "16px Arial";
+        ctx.fillText("Fraud Rate: " + value + "%", 50, 50);
+    } catch (error) {
+        console.error("Chart error:", error);
+    }
+}
+
+loadFraudChart();
+setInterval(loadFraudChart, 5000);
+    </script>
+
+</body>
+</html>
